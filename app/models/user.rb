@@ -1,5 +1,14 @@
 class User < ActiveRecord::Base
   has_many :microposts, dependent: :destroy
+  has_many :comments, dependent: :destroy
+  has_many :active_relationships, class_name:  "Relationship",
+                                  foreign_key: "follower_id",
+                                  dependent:   :destroy
+  has_many :passive_relationships, class_name:  "Relationship",
+                                   foreign_key: "followed_id",
+                                   dependent:   :destroy
+  has_many :following, through: :active_relationships, source: :followed
+  has_many :followers, through: :passive_relationships, source: :follower
   attr_accessor :remember_token, :activation_token, :reset_token
   before_save   :downcase_email
   before_create :create_activation_digest
@@ -9,16 +18,14 @@ class User < ActiveRecord::Base
   validates :email, presence: true, length: { maximum: 255 },
                     format: { with: VALID_EMAIL_REGEX },
                     uniqueness: { case_sensitive: false }
-  has_secure_password
   validates :password, presence: true, length: { minimum: 6 }, allow_nil: true
-
+  has_secure_password
   # Returns the hash digest of the given string.
   def User.digest(string)
     cost = ActiveModel::SecurePassword.min_cost ? BCrypt::Engine::MIN_COST :
                                                   BCrypt::Engine.cost
     BCrypt::Password.create(string, cost: cost)
   end
-
   # Returns the hash digest of the given string.
   def self.digest(string)
     cost = ActiveModel::SecurePassword.min_cost ? BCrypt::Engine::MIN_COST :
@@ -34,11 +41,12 @@ class User < ActiveRecord::Base
       BCrypt::Password.create(string, cost: cost)
     end
 
-  # Returns a random token.
+    # Returns a random token.
     def new_token
       SecureRandom.urlsafe_base64
     end
   end
+
 # Remembers a user in the database for use in persistent sessions.
   def remember
     self.remember_token = User.new_token
@@ -57,14 +65,10 @@ class User < ActiveRecord::Base
   end
 
 # Activates an account.
-<<<<<<< HEAD
-   def activate
+
+  def activate
     update_attribute(:activated,    true)
     update_attribute(:activated_at, Time.zone.now)
-=======
-  def activate
-    update_columns(activated: FILL_IN, activated_at: FILL_IN)
->>>>>>> user-microposts
   end
 
   # Sends activation email.
@@ -75,8 +79,8 @@ class User < ActiveRecord::Base
   # Sets the password reset attributes.
   def create_reset_digest
     self.reset_token = User.new_token
-    update_columns(reset_digest:  FILL_IN,
-                   reset_sent_at: FILL_IN)
+    update_attribute(:reset_digest,  User.digest(reset_token))
+    update_attribute(:reset_sent_at, Time.zone.now)
   end
 
   # Sends password reset email.
@@ -91,19 +95,39 @@ class User < ActiveRecord::Base
   # Defines a proto-feed.
   # See "Following users" for the full implementation.
   def feed
-    Micropost.where("user_id = ?", id)
+    following_ids = "SELECT followed_id FROM relationships
+                     WHERE  follower_id = :user_id"
+    Micropost.where("user_id IN (#{following_ids})
+                     OR user_id = :user_id", user_id: id)
   end
 
-private
+  # Follows a user.
+  def follow(other_user)
+    active_relationships.create(followed_id: other_user.id)
+  end
 
+  # Unfollows a user.
+  def unfollow(other_user)
+    active_relationships.find_by(followed_id: other_user.id).destroy
+  end
+
+  # Returns true if the current user is following the other user.
+  def following?(other_user)
+    following.include?(other_user)
+  end
+
+  def downcase_email
+    self.email = email.downcase
+  end
+
+  private
     # Converts email to all lower-case.
-    def downcase_email
-      self.email = email.downcase
-    end
+
 
     # Creates and assigns the activation token and digest.
     def create_activation_digest
       self.activation_token  = User.new_token
       self.activation_digest = User.digest(activation_token)
     end
+
 end
