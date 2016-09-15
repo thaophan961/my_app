@@ -22,7 +22,7 @@ archer:
   activated: true
   activated_at: <%= Time.zone.now %>
 
-  lana:
+lana:
   name: Lana Kane
   email: hands@example.gov
   password_digest: <%= User.digest('password') %>
