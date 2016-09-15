@@ -4,7 +4,11 @@ class UsersController < ApplicationController
   before_action :admin_user,     only: :destroy
 
   def index
+<<<<<<< HEAD
     @users = User.where(activated: true).paginate(page: params[:page])
+=======
+    @users = User.where(activated: FILL_IN).paginate(page: params[:page])
+>>>>>>> user-microposts
   end
 
   def show
