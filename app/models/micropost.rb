@@ -1,4 +1,5 @@
 class Micropost < ActiveRecord::Base
+
   belongs_to :user
   has_many :comments
   default_scope -> { order(created_at: :desc) }
@@ -7,9 +8,7 @@ class Micropost < ActiveRecord::Base
   validates :content, presence: true, length: { maximum: 140 }
   validate  :picture_size
 
-
   private
-
     # Validates the size of an uploaded picture.
     def picture_size
       if picture.size > 5.megabytes

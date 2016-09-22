@@ -78,7 +78,7 @@ class UsersController < ApplicationController
           flash[:danger] = "Please log in."
           redirect_to login_url
         end
-    end
+      end
 
     # Confirms the correct user.
     def correct_user

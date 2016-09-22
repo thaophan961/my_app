@@ -26,7 +26,7 @@ before_action :correct_user,   only: :destroy
     redirect_to request.referrer || root_url
   end
 
-   private
+  private
 
     def micropost_params
       params.require(:micropost).permit(:content, :picture, :title)
